@@ -1,8 +1,8 @@
-# OpenStack API 架构
+# OpenStack API 通用扩展方法
 OpenStack是开源的IaaS解决方案，完全由python实现，由apache协议发行，被称为云计算界的Linux。
 
 由于需要适应不同企业的需求，一个灵活可扩展的架构尤其重要，其中API扩展性更是重中之重。
-OpenStack内组件繁多，架构也各有不同，本文仅介绍OpenStack项目中常见的API架构，主要参考组件为Nova，Cinder，Glance，并且介绍API的扩展方法。同时本文描述的架构也十分有利于理解其他组件的API实现。
+OpenStack内组件繁多，架构也各有不同，本文介绍OpenStack项目中通用的API架构，主要参考组件为Nova，Cinder，Glance，并且介绍API的扩展方法。同时本文描述的架构也十分有利于理解其他组件的API实现。
 
 ## WSGI协议
 WSGI（Python Web Server Gateway Interface），是为Python语言定义的Web服务器和Web应用程序或框架之间的一种简单而通用的接口。WSGI包括两方面：一为“服务器”或“网关”，另一为“应用程序”或“应用框架”。在处理一个WSGI请求时，服务器会为应用程序提供环境及一个回调函数（Callback Function）。当应用程序完成处理请求后，通过回调函数，将结果回传给服务器。
@@ -128,12 +128,13 @@ paste.filter_factory = nt_version.filter_factory
 version = 0.11
 ```
 
-代码很简单，PasteDeploy读取完配置文件，当要生成osapi_compute pipeline时，由于新加了`nt_version` filter，会通过配置调用nt_version.filter_factory,并将其他配置信息传递给filter_factory。
+代码很简单，PasteDeploy读取完配置文件，当要生成osapi_compute pipeline时，由于新加了`nt_version` filter，会调用nt_version.filter_factory(),并将其他配置信息传递给filter_factory，以构造ReportVersionFilter实例。
 
-`ReportVersionFilter`作为一个Filter，做完过滤处理后可能需要交由之后的app，后者之后的filter继续处理，所以第一个参数接收PasteDeploy传递的app。第二个参数`version`是业务相关的，可以任意定义，这里我们通过配置文件定义软件版本号，所以在配置文件中指定。
+`ReportVersionFilter`作为一个Filter，做完过滤处理后可能需要交下一个app或filter继续处理，所以第一个参数接收PasteDeploy传递的app。第二个参数`version`是业务相关的，可以任意定义，这里我们通过配置文件定义软件版本号，所以在factory中获取，并且传入。
 
 `__call__`是标准WSGI实现，主要逻辑是判断URI是否为`nt_version`，是则返回软件版本号，否则交由下一个app继续处理。
 
 
-通过PasteDeploy可以对OpenStack的API做任意的扩展，比如可以根据特征屏蔽特定请求，以防御DDOS攻击；可以为API增加Cache层；可以对API增加Gzip支持；可以将响应体加入特定信息等。希望本文能够起到抛砖引玉的作用，让读者扩展一些对OpenStack扩展的思路。
+通过PasteDeploy可以对OpenStack的API做任意扩展，比如可以根据特征屏蔽特定请求，以防御DDOS攻击；可以为API增加Cache层；可以对API增加Gzip支持；可以将响应体加入特定信息等。
+希望本文能够起到抛砖引玉的作用，增加扩展OpenStack的思路。
 
